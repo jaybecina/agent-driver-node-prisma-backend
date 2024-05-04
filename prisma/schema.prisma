@@ -1,0 +1,178 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// xdate     DateTime? @db.Date
+// xdatetime DateTime? @db.DateTime(0)
+
+enum Role {
+  ADMIN
+  AGENT_DRIVER
+  AGENT
+  ADVERTISER
+}
+
+model User {
+  id                   Int       @id @default(autoincrement())
+  firstName            String
+  lastName             String
+  // dateOfBirth          DateTime  @db.Date
+  dateOfBirth          String
+  addressLine1         String
+  addressLine2         String
+  city                 String
+  state                String
+  country              String
+  zipCode              String
+  email                String    @unique
+  password             String
+  role                 Role      @default(AGENT_DRIVER)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  driver               Driver?
+
+  @@map("users")
+}
+
+enum DriverStatus {
+  VERIFICATION_PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
+model Driver {
+  id             Int           @id @default(autoincrement())
+  dl             String
+  lp             String
+  driveHours     String
+  employedDC     String?
+  ssn            String
+  preferredLoc   String
+  dateRegistered String
+  dateApproved   String?
+  dateDeclined   String?
+  dateCancelled  String?
+  userId         Int           @unique
+  user           User          @relation(fields: [userId], references: [id])
+  vehicle        Vehicle?
+  statistic      Statistic?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  driverImages   DriverImage[]
+  status         DriverStatus  @default(VERIFICATION_PENDING)
+
+  @@map("drivers")
+}
+
+model DriverImage {
+  id           Int      @id @default(autoincrement())
+  originalname String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  driverId     Int
+  driver       Driver   @relation(fields: [driverId], references: [id])
+
+  @@map("driver_images")
+}
+
+model Vehicle {
+  id           Int        @id @default(autoincrement())
+  vehicleModel String
+  vehicleMake  String
+  vehicleYear  String
+  hasScreen    Boolean?   @default(false)
+  driverId     Int        @unique
+  driver       Driver     @relation(fields: [driverId], references: [id])
+  statistic    Statistic?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("vehicles")
+}
+
+model Statistic {
+  id          Int      @id @default(autoincrement())
+  earnings    Decimal  @db.Decimal(9, 2)
+  milesDriven Decimal  @db.Decimal(9, 2)
+  dateStart   String
+  dateEnd     String?
+  driverId    Int      @unique
+  driver      Driver   @relation(fields: [driverId], references: [id])
+  vehicleId   Int      @unique
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  // deleted     Boolean   @default(false)
+
+  @@map("statistics")
+}
+
+model Customer {
+  id               Int      @id @default(autoincrement())
+  name             String
+  email            String   @unique
+  phone            String
+  stripeCustomerId String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  // deleted     Boolean   @default(false)
+
+  @@map("customers")
+}
+
+model Charges {
+  id             Int      @id @default(autoincrement())
+  email          String
+  amount         Decimal  @db.Decimal(9, 2)
+  card_id        String
+  description    String
+  customer_id    Int
+  stripeChargeId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  // deleted     Boolean   @default(false)
+
+  @@map("charges")
+}
+
+model Payment {
+  id             Int      @id @default(autoincrement())
+  customer_email String?
+  amount         Decimal  @db.Decimal(9, 2)
+  paymentId      String
+  paymentStatus  String
+  paymentDate    Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("payments")
+}
+
+model Product {
+  id              Int      @id @default(autoincrement())
+  name            String
+  description     String
+  active          Boolean
+  default_price   Decimal  @db.Decimal(9, 2)
+  stripeProductId String
+  stripePriceId   String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  // deleted     Boolean   @default(false)
+
+  @@map("products")
+}
